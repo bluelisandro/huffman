@@ -46,7 +46,6 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     """
     raise NotImplementedError
 
-
 if __name__ == '__main__':
     usage = f'Usage: {sys.argv[0]} [ -c | -d | -v | -w ] infile outfile'
     if len(sys.argv) != 4:
