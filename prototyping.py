@@ -46,9 +46,6 @@ def huffman_tree(freq_min_heap: list) -> list:
     #    the smallest frequency is the left child, the second smallest is the right child
     # 4. Add the new node to the minheap
     # 5. Repeat steps 1-4 until there is only one node left in the minheap
-
-    # huffman_min_heap = []
-    # print("\n")
     while len(freq_min_heap) > 1:
         left = heapq.heappop(freq_min_heap)
         right = heapq.heappop(freq_min_heap)
@@ -106,7 +103,7 @@ def decode(encoded_bytes: bytes, codes: Dict) -> bytes:
     flipped_codes = {v: k for k, v in codes.items()}
 
     for bit in encoded_str:
-        print(bit)
+        # print(bit)
         buffer += bit
         if buffer in flipped_codes:
             decoded_message.append(flipped_codes[buffer])
