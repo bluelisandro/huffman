@@ -102,14 +102,21 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     :returns: array of bytes to be written to disk
               dict containing the decoder ring
     """
-    encoded_str, decoder_ring = encode(message)
-    encoded_bytes = encoded_str.encode()
-    encoded_bytes = array('B', encoded_bytes)
-    return (encoded_bytes, decoder_ring)
+    encoded_bytes = array.array('B')
+    buf = ""
+    for bit in bits:
+        buf += bit
+        if len(buf) == 8:
+            encoded_bytes.append(int(buf, 2))
+            buf = ""
 
-# NOTE: Encode returns the encoded bytes as a string,
-# whereas compress returns the encoded bytes as an array of bytes.
-# So I need to figure out how to convert the string to an array of bytes.
+    if len(buf) > 0:
+        encoded_bytes.append(int(buf, 2))
+
+    decoder_ring = encode(message)
+
+    # TODO: Need to add the padded last byte to decoder ring
+    return (encoded_bytes, decoder_ring)
 
 # ------------------------- DECODING -------------------------
 
@@ -132,7 +139,7 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
         if buffer in flipped_codes:
             decoded_message.append(flipped_codes[buffer])
             buffer = ''
-            
+
     return array('B', decoded_message)
 
 
@@ -151,7 +158,11 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
             buf = buf << 1
         else:
             buf = (buf << 1) | 1
-    
+        decompressed_str += str(buf)
+
+    # Convert all values in array to a single str
+    # buf = ''.join([str(x) for x in message])
+
     return decode(buf, decoder_ring)
 
 
