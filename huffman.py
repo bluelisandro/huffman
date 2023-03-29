@@ -25,9 +25,6 @@ def create_freq_min_heap(freq: Dict) -> list:
     :param freq: dict containing the frequency of each byte in a file
     :returns: minheap containing the frequency tree for each byte
     """
-    # freq_min_heap = []
-    # for k, v in freq.items():
-    #     heapq.heappush(freq_min_heap, (v, k))
     freq_min_heap = [(v, k) for k, v in freq.items()]
     heapq.heapify(freq_min_heap)
     return freq_min_heap
@@ -55,7 +52,7 @@ def create_huffman_tree(freq_min_heap: list):
     return freq_min_heap[0]
 
 
-def create_encoder_ring(huffman_tree) -> Dict:
+def create_decoder_ring(huffman_tree) -> Dict:
     """ Given a huffman tree, returns an encoder ring.
 
     :param message: raw sequence of bytes from a file
@@ -64,15 +61,15 @@ def create_encoder_ring(huffman_tree) -> Dict:
     """
     codes = {}
 
-    def _encoder_ring(node: Tuple[int, any, any], code: str):
+    def _create_decoder_ring(node: Tuple[int, any, any], code: str):
         # If a node has only one child, its left child is a leaf node
         # so we can add that code to the dictionary
         if len(node) == 2:
             codes[node[1]] = code
         else:
-            _encoder_ring(node[1], code + '0')
-            _encoder_ring(node[2], code + '1')
-    _encoder_ring(huffman_tree, '')
+            _create_decoder_ring(node[1], code + '0')
+            _create_decoder_ring(node[2], code + '1')
+    _create_decoder_ring(huffman_tree, '')
     return codes
 
 
@@ -85,9 +82,8 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     freq = create_freq_tree(message)
     freq_min_heap = create_freq_min_heap(freq)
     huffman_tree = create_huffman_tree(freq_min_heap)
-    decoder_ring = create_encoder_ring(huffman_tree)
+    decoder_ring = create_decoder_ring(huffman_tree)
 
-    # encoded_bytes = "".join([codes[byte] for byte in message])
     encoded_str = ""
     for byte in message:
         encoded_str += decoder_ring[byte]
@@ -102,21 +98,20 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     :returns: array of bytes to be written to disk
               dict containing the decoder ring
     """
-    encoded_bytes = array.array('B')
-    buf = ""
-    for bit in bits:
-        buf += bit
-        if len(buf) == 8:
-            encoded_bytes.append(int(buf, 2))
-            buf = ""
+    encoded_str, decoder_ring = encode(message)
 
-    if len(buf) > 0:
-        encoded_bytes.append(int(buf, 2))
+    compressed_message = array('B')
+    byte = 0
+    for bit in encoded_str:
+        byte = (byte << 1) | int(bit)
+        if len(bin(byte)) == 8:
+            compressed_message.append(byte)
+            byte = 0
 
-    decoder_ring = encode(message)
+    if byte != 0:
+        compressed_message.append(byte)
 
-    # TODO: Need to add the padded last byte to decoder ring
-    return (encoded_bytes, decoder_ring)
+    return (compressed_message, decoder_ring)
 
 # ------------------------- DECODING -------------------------
 
@@ -129,16 +124,14 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
     return: raw sequence of bytes that represent a decoded file
     """
     decoded_message = []
-    encoded_str = str(message)
-    buffer = ''
+    buf = ''
     flipped_codes = {v: k for k, v in decoder_ring.items()}
 
-    for bit in encoded_str:
-        # print(bit)
-        buffer += bit
-        if buffer in flipped_codes:
-            decoded_message.append(flipped_codes[buffer])
-            buffer = ''
+    for bit in message:
+        buf += bit
+        if buf in flipped_codes:
+            decoded_message.append(flipped_codes[buf])
+            buf = ''
 
     return array('B', decoded_message)
 
@@ -164,12 +157,6 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     # buf = ''.join([str(x) for x in message])
 
     return decode(buf, decoder_ring)
-
-
-# NOTE: Similar to the difference between encode and compress,
-# decode is given a the bytes as a string,
-# whereas decompress is given the decoded message as an array of bytes.
-# So I need to figure out how to convert the provided array of bytes to a string.
 
 
 # ------------------------- MAIN -------------------------
