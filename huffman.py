@@ -10,44 +10,43 @@ import heapq
 # ------------------------- ENCODING -------------------------
 
 
-def create_freq_tree(message: bytes) -> Dict:
+def create_freq_map(message: bytes) -> Dict:
     """ Given the bytes read from a file, returns a dictionary containing the frequency of each byte in the file.
 
     :param message: raw sequence of bytes from a file
-    :returns: dict containing the frequency of each byte in the file
+    :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
     """
-    return {byte: message.count(byte) for byte in set(message)}
+    return {byte: message.count(byte) for byte in set(message)} # key: byte, value: frequency
 
 
-def create_freq_min_heap(freq: Dict) -> list:
-    """ Given a dictionary containing the frequency of each byte in a file, returns a minheap containing the frequency tree for each byte.
-
-    :param freq: dict containing the frequency of each byte in a file
-    :returns: minheap containing the frequency tree for each byte
-    """
-    freq_min_heap = [(v, k) for k, v in freq.items()]
-    heapq.heapify(freq_min_heap)
-    return freq_min_heap
-
-
-def create_huffman_tree(freq_min_heap: list):
+def create_huffman_tree(freq_map: dict):
     """ Given a minheap containing the frequency tree for each byte, returns a huffman tree.
 
     :param minheap: minheap containing the frequency tree for each byte
     :returns: huffman tree
     """
+     # Ensure all elements in the minheap are tuples with the frequency as the first element
+    freq_min_heap = [(freq, byte) for byte, freq in freq_map.items()]
+    
+    # Build the min heap
+    heapq.heapify(freq_min_heap)
+
     # Repeat until there is only one node left in the minheap
     while len(freq_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
         left = heapq.heappop(freq_min_heap)
+        # print(left) # DEBUG
         right = heapq.heappop(freq_min_heap)
+        # print(right) # DEBUG
 
         # Create a new node with the sum of the two frequencies as the frequency,
         # and add the two smallest frequencies as children to the new node,
         new = (left[0] + right[0], left, right)
+        print(new) # DEBUG
 
         # Add the new node to the minheap
         heapq.heappush(freq_min_heap, new)
+        # print(freq_min_heap) # DEBUG
 
     return freq_min_heap[0]
 
@@ -83,9 +82,8 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     :returns: string of 1s and 0s representing the encoded message
               dict containing the decoder ring as explained in lecture and handout.
     """
-    freq_tree = create_freq_tree(message)
-    freq_min_heap = create_freq_min_heap(freq_tree)
-    huffman_tree = create_huffman_tree(freq_min_heap)
+    freq_map = create_freq_map(message)
+    huffman_tree = create_huffman_tree(freq_map)
     decoder_ring = create_decoder_ring(huffman_tree)
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
 
