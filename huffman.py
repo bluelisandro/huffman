@@ -138,25 +138,27 @@ def compress(message: bytes) -> Tuple[array, Dict]:
 
     if byte:
         padded_byte = bin(byte)[2:]
+        pad_count = 0
         while len(padded_byte) < 8:
             padded_byte += '0'
+            pad_count += 1
 
         # DEBUG
-        print("\npadded_byte:", padded_byte)
+        print("\npad_count:", pad_count)
+        print("padded_byte:", padded_byte)
 
-        # TODO: padded_byte is a str, 
+        # TODO: padded_byte is a str,
         # but I should be appending a byte to compressed_message
 
-        # print("\npadded_byte:", padded_byte)
-        # compressed_message.append(int(padded_byte, 2))
-        # decoder_ring['padded'] = 8 - len(bin(byte)[2:])
-        # print("padded:", padded_byte)
+        print("appending byte to compressed_message:", padded_byte)
+        compressed_message.append(int(padded_byte, 2))
+        decoder_ring['pad_count'] = pad_count
 
     # DEBUG
     # print("compressed_message array:", compressed_message)
-    # print("\ncompressed_message bytes:")
-    # for byte in compressed_message:
-    #     print(bin(byte)[2:])
+    print("\ncompressed_message bytes:")
+    for byte in compressed_message:
+        print(bin(byte)[2:])
 
     return (compressed_message, decoder_ring)
 
@@ -170,6 +172,9 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
     :param decoder_ring: dict containing the decoder ring
     return: raw sequence of bytes that represent a decoded file
     """
+    # TODO: Before, decode was taking in a string of 1s and 0s, but now it is taking in an array of bytes,
+    # so I need to convert the array of bytes into a string of 1s and 0s
+
     decoded_message = array('B')
     buf = ''
     flipped_decoder = {v: k for k, v in decoder_ring.items()}
@@ -181,7 +186,7 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
             buf = ''
 
     # DEBUG
-    print("decoded_message: ", decoded_message)
+    print("\ndecoded_message: ", decoded_message)
 
     return bytes(decoded_message)
 
@@ -193,26 +198,46 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     :param decoder_ring: dict containing the decoder ring
     :return: raw sequence of bytes that represent a decompressed file
     """
-    decompressed_message = ''
+    decompressed_message = array('B')
 
-    # Convert the array of bytes into a string of 1s and 0s
-    decompressed_message += ''.join([bin(byte)[2:].zfill(8)
-                                    for byte in message])
-
-    # DEBUG
-    print("decompressed_message:", decompressed_message)
-
-    if 'padded' in decoder_ring:
-        # Need to remove the padding from the last byte
-        padded = decoder_ring['padded']
-        padded_byte = decompressed_message[-8:]
-        decompressed_message = decompressed_message[:-
-                                                    8] + padded_byte[:-padded]
-
-    # for byte in message:
-        # decompressed_message += bin(byte)[2:].zfill(8)
+    byte_index = 0
+    for byte in message:
+        # TODO: Appending strs to decompressed_message, needs to be bytes
+        # DONE: Fixed by using array('B') instead of '' for decompressed_message,
+        # and using append byte instead of += byte
+        # TODO: Don't append last byte if it is padded,
+        # or think of some other solution to replace padded byte
+        decompressed_message.append(byte)
+        byte_index += 1
     # List comprehension version of above
     # decompressed_message = ''.join([bin(b)[2:].zfill(8) for b in message])
+
+    # DEBUG
+    print("\ndecompressed_message:", decompressed_message)
+
+    # if 'pad_count' in decoder_ring:
+    #     # DEBUG
+    #     print("\npad_count:", decoder_ring['pad_count'])
+
+    #     # Need to remove the padding from the last byte
+    #     pad_count = decoder_ring['pad_count']
+    #     padded_byte = decompressed_message[-8:]
+
+    #     # DEBUG
+    #     print("padded_byte:", padded_byte)
+
+    #     unpadded_byte = padded_byte[:-pad_count]
+
+    #     # DEBUG
+    #     print("unpadded_byte:", unpadded_byte)
+
+    # TODO: Add unpadded_byte to decompressed_message
+
+    # DEBUG
+    # print("\ndecompressed_message bytes:")
+    # for byte in decompressed_message:
+    # print(byte)
+    print("\ndecompressed_message:", decompressed_message)
 
     return decode(decompressed_message, decoder_ring)
 
