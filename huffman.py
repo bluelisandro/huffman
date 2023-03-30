@@ -59,18 +59,20 @@ def create_decoder_ring(huffman_tree) -> Dict:
     :returns: string of 1s and 0s representing the encoded message
               dict containing the decoder ring as explained in lecture and handout.
     """
-    codes = {}
+    decoder_ring = {}  # key: byte, value: code
 
     def _create_decoder_ring(node: Tuple[int, any, any], code: str):
         # If a node has only one child, its left child is a leaf node
         # so we can add that code to the dictionary
         if len(node) == 2:
-            codes[node[1]] = code
+            decoder_ring[node[1]] = code
         else:
             _create_decoder_ring(node[1], code + '0')
             _create_decoder_ring(node[2], code + '1')
+
     _create_decoder_ring(huffman_tree, '')
-    return codes
+
+    return decoder_ring
 
 
 def encode(message: bytes) -> Tuple[str, Dict]:
@@ -79,16 +81,14 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     :returns: string of 1s and 0s representing the encoded message
               dict containing the decoder ring as explained in lecture and handout.
     """
-    freq = create_freq_tree(message)
-    freq_min_heap = create_freq_min_heap(freq)
+    freq_tree = create_freq_tree(message)
+    freq_min_heap = create_freq_min_heap(freq_tree)
     huffman_tree = create_huffman_tree(freq_min_heap)
     decoder_ring = create_decoder_ring(huffman_tree)
 
-    encoded_str = ""
-    for byte in message:
-        encoded_str += decoder_ring[byte]
+    encoded_message = ''.join([decoder_ring[byte] for byte in message])
 
-    return (encoded_str, decoder_ring)
+    return (encoded_message, decoder_ring)
 
 
 def compress(message: bytes) -> Tuple[array, Dict]:
@@ -98,18 +98,23 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     :returns: array of bytes to be written to disk
               dict containing the decoder ring
     """
-    encoded_str, decoder_ring = encode(message)
+    encoded_message, decoder_ring = encode(message)
 
     compressed_message = array('B')
     byte = 0
-    for bit in encoded_str:
+    for bit in encoded_message:
+        # Shift byte left by 1, and add curr bit to end
         byte = (byte << 1) | int(bit)
+        # If byte is full, add it to compressed message, and clear byte
         if len(bin(byte)) == 8:
             compressed_message.append(byte)
             byte = 0
 
+    # If there is a partial byte left, pad the left with 0s,
+    # then add it to the compressed message
     if byte != 0:
-        compressed_message.append(byte)
+        padded_byte = bin(byte)[2:].zfill(8)
+        compressed_message.append(padded_byte)
 
     return (compressed_message, decoder_ring)
 
@@ -123,40 +128,45 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
     :param decoder_ring: dict containing the decoder ring
     return: raw sequence of bytes that represent a decoded file
     """
-    decoded_message = []
+    decoded_message = array('B')
     buf = ''
-    flipped_codes = {v: k for k, v in decoder_ring.items()}
+    flipped_decoder = {v: k for k, v in decoder_ring.items()}
 
     for bit in message:
         buf += bit
-        if buf in flipped_codes:
-            decoded_message.append(flipped_codes[buf])
+        if buf in flipped_decoder:
+            decoded_message.append(flipped_decoder[buf])
             buf = ''
 
-    return array('B', decoded_message)
+    return decoded_message
 
 
 def decompress(message: array, decoder_ring: Dict) -> bytes:
-    """ Given a decoder ring and an array of bytes read from a compressed file, 
-    turns the array into a string and calls decode.
+    """ Given a decoder ring and an array of bytes read from a compressed file, turns the array into a string and calls decode.
 
     :param message: array of bytes read in from a compressed file
     :param decoder_ring: dict containing the decoder ring
     :return: raw sequence of bytes that represent a decompressed file
     """
-    decompressed_str = ""
-    buf = 0
-    for bit in message:
-        if bit == '0':
-            buf = buf << 1
-        else:
-            buf = (buf << 1) | 1
-        decompressed_str += str(buf)
+    decompressed_message = ''
+    # buf = 0
+    # for bit in message:
+    #     if bit == '0':
+    #         buf = buf << 1
+    #     else:
+    #         buf = (buf << 1) | 1
+    #     decompressed_message += str(buf)
 
-    # Convert all values in array to a single str
-    # buf = ''.join([str(x) for x in message])
+    # decompressed_message = ''.join([bin(b)[2:].zfill(8) for b in message])
 
-    return decode(buf, decoder_ring)
+    # for byte in message:
+    #     decompressed_message += bin(byte)[2:].zfill(8)
+
+    for byte in message:
+        temp = bin(byte)[2:]
+        decompressed_message += '0' * (8 - len(temp)) + temp
+
+    return decode(decompressed_message, decoder_ring)
 
 
 # ------------------------- MAIN -------------------------
