@@ -116,6 +116,9 @@ def compress(message: bytes) -> Tuple[array, Dict]:
         padded_byte = bin(byte)[2:].zfill(8)
         compressed_message.append(padded_byte)
 
+    # DEBUG
+    print(compressed_message)
+
     return (compressed_message, decoder_ring)
 
 # ------------------------- DECODING -------------------------
@@ -159,18 +162,19 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
 
     # decompressed_message = ''.join([bin(b)[2:].zfill(8) for b in message])
 
-    # for byte in message:
-    #     decompressed_message += bin(byte)[2:].zfill(8)
-
     for byte in message:
-        temp = bin(byte)[2:]
-        decompressed_message += '0' * (8 - len(temp)) + temp
+        decompressed_message += bin(byte)[2:].zfill(8)
+
+    # for byte in message:
+    #     temp = bin(byte)[2:]
+    #     decompressed_message += '0' * (8 - len(temp)) + temp
 
     return decode(decompressed_message, decoder_ring)
 
 
 # ------------------------- MAIN -------------------------
-
+# -v : encode
+# w : decode
 if __name__ == '__main__':
     usage = f'Usage: {sys.argv[0]} [ -c | -d | -v | -w ] infile outfile'
     if len(sys.argv) != 4:
