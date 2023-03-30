@@ -110,34 +110,34 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     encoded_message, decoder_ring = encode(message)
 
     compressed_message = array('B')
-    byte = 0
+    byte = ""
+    # DEBUG
+    print("bytes appended to compressed_message:")
     for bit in encoded_message:
         # Shift byte left by 1, and add curr bit to end
-        byte = (byte << 1) | int(bit)
-
-        # DEBUG
-        # print("byte:", bin(byte)[2:])
-
-        # TODO: Fix bug where 0b gets counted in the length of the byte,
-        # causing it to add the byte to compressed message when it is actually 6 bits long
-        # DONE: Fixed by slicing off the 0b using [2:]
+        byte += bit
 
         # If byte is full, add it to compressed message, and clear byte
-        if len(bin(byte)[2:]) == 8:
+        if len(byte) == 8:
             # DEBUG
-            print("appending byte to compressed_message:", bin(byte)[2:])
-            compressed_message.append(byte)
-            byte = 0
+            print(byte)
+            compressed_message.append(int(byte, 2))
+            byte = ""
 
     # If there is a partial byte left, pad the right with 0s,
     # add the amount padded as a key to the decoder ring,
     # then add the padded bit to the compressed message
 
     # DEBUG
-    print("\nleftover byte to pad:", bin(byte)[2:])
+    # print("\ncompressed_message bytes w/o padding:", end=" ")
+    # for byte in compressed_message:
+    #     print(bin(byte)[2:], end="")
+    # print("\nleftover byte to pad:", bin(byte)[2:])
 
-    if byte:
-        padded_byte = bin(byte)[2:]
+    if len(byte) != 0:
+        padded_byte = byte
+        # DEBUG
+        print("padded_byte before padding:", padded_byte)
         pad_count = 0
         while len(padded_byte) < 8:
             padded_byte += '0'
@@ -145,20 +145,16 @@ def compress(message: bytes) -> Tuple[array, Dict]:
 
         # DEBUG
         print("\npad_count:", pad_count)
-        print("padded_byte:", padded_byte)
-
-        # TODO: padded_byte is a str,
-        # but I should be appending a byte to compressed_message
-
+        print("padded_byte after padding:", padded_byte)
         print("appending byte to compressed_message:", padded_byte)
+
         compressed_message.append(int(padded_byte, 2))
         decoder_ring['pad_count'] = pad_count
 
     # DEBUG
-    # print("compressed_message array:", compressed_message)
-    print("\ncompressed_message bytes:")
+    print("\ncompressed_message bytes w/ padding:")
     for byte in compressed_message:
-        print(bin(byte)[2:], end="")
+        print(bin(byte)[2:])
 
     return (compressed_message, decoder_ring)
 
