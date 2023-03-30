@@ -29,24 +29,26 @@ def create_huffman_tree(freq_map: dict):
     freq_min_heap = [(freq, byte) for byte, freq in freq_map.items()]
     
     # Build the min heap
-    heapq.heapify(freq_min_heap)
+    # heapq.heapify(freq_min_heap)
+    freq_min_heap.sort(key=lambda t: t[0])
 
     # Repeat until there is only one node left in the minheap
     while len(freq_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
-        left = heapq.heappop(freq_min_heap)
-        # print(left) # DEBUG
-        right = heapq.heappop(freq_min_heap)
-        # print(right) # DEBUG
+        # left = heapq.heappop(freq_min_heap)
+        left = freq_min_heap.pop(0)
+
+        # right = heapq.heappop(freq_min_heap)
+        right = freq_min_heap.pop(0)
 
         # Create a new node with the sum of the two frequencies as the frequency,
         # and add the two smallest frequencies as children to the new node,
         new = (left[0] + right[0], left, right)
-        print(new) # DEBUG
 
         # Add the new node to the minheap
-        heapq.heappush(freq_min_heap, new)
-        # print(freq_min_heap) # DEBUG
+        # heapq.heappush(freq_min_heap, new)
+        freq_min_heap.append(new)
+        freq_min_heap.sort(key=lambda t: t[0])
 
     return freq_min_heap[0]
 
