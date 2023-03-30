@@ -67,10 +67,17 @@ def create_decoder_ring(huffman_tree) -> Dict:
         if len(node) == 2:
             decoder_ring[node[1]] = code
         else:
-            _create_decoder_ring(node[1], code + '0') # if traversing left add 0
-            _create_decoder_ring(node[2], code + '1') # if traversing right add 1
+            # if traversing left add 0
+            _create_decoder_ring(node[1], code + '0')
+            # if traversing right add 1
+            _create_decoder_ring(node[2], code + '1')
 
     _create_decoder_ring(huffman_tree, '')
+
+    # DEBUG
+    print("decoder_ring:")
+    for k, v in decoder_ring.items():
+        print(chr(k), v)
 
     return decoder_ring
 
@@ -86,6 +93,10 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     huffman_tree = create_huffman_tree(freq_min_heap)
     decoder_ring = create_decoder_ring(huffman_tree)
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
+
+    # DEBUG
+    print("\nencoded_message:", encoded_message, "\n")
+
     return (encoded_message, decoder_ring)
 
 
@@ -103,24 +114,49 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     for bit in encoded_message:
         # Shift byte left by 1, and add curr bit to end
         byte = (byte << 1) | int(bit)
+
+        # DEBUG
+        # print("byte:", bin(byte)[2:])
+
+        # TODO: Fix bug where 0b gets counted in the length of the byte,
+        # causing it to add the byte to compressed message when it is actually 6 bits long
+        # DONE: Fixed by slicing off the 0b using [2:]
+
         # If byte is full, add it to compressed message, and clear byte
-        if len(bin(byte)) == 8:
+        if len(bin(byte)[2:]) == 8:
+            # DEBUG
+            print("appending byte to compressed_message:", bin(byte)[2:])
             compressed_message.append(byte)
             byte = 0
 
-    # If there is a partial byte left, pad the left with 0s,
+    # If there is a partial byte left, pad the right with 0s,
     # add the amount padded as a key to the decoder ring,
     # then add the padded bit to the compressed message
-    if byte != 0:
-        padded_byte = bin(byte)[2:].zfill(8)
-        compressed_message.append(padded_byte)
-        decoder_ring['padded'] = 8 - len(bin(byte)[2:])
-        print("padded:", padded_byte)
 
     # DEBUG
-    # print("compressed_message:" , compressed_message)
-    # print("compressed_message:", ' '.join([format(b, '02x') for b in compressed_message]))
+    print("\nleftover byte to pad:", bin(byte)[2:])
 
+    if byte:
+        padded_byte = bin(byte)[2:]
+        while len(padded_byte) < 8:
+            padded_byte += '0'
+
+        # DEBUG
+        print("\npadded_byte:", padded_byte)
+
+        # TODO: padded_byte is a str, 
+        # but I should be appending a byte to compressed_message
+
+        # print("\npadded_byte:", padded_byte)
+        # compressed_message.append(int(padded_byte, 2))
+        # decoder_ring['padded'] = 8 - len(bin(byte)[2:])
+        # print("padded:", padded_byte)
+
+    # DEBUG
+    # print("compressed_message array:", compressed_message)
+    # print("\ncompressed_message bytes:")
+    # for byte in compressed_message:
+    #     print(bin(byte)[2:])
 
     return (compressed_message, decoder_ring)
 
@@ -145,10 +181,9 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
             buf = ''
 
     # DEBUG
-    # print("decoded_message:", decoded_message)
+    print("decoded_message: ", decoded_message)
 
-    # TODO: This should be returning bytes, not an array of bytes
-    return decoded_message
+    return bytes(decoded_message)
 
 
 def decompress(message: array, decoder_ring: Dict) -> bytes:
@@ -161,13 +196,18 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     decompressed_message = ''
 
     # Convert the array of bytes into a string of 1s and 0s
-    decompressed_message += ''.join([bin(byte)[2:].zfill(8) for byte in message])
+    decompressed_message += ''.join([bin(byte)[2:].zfill(8)
+                                    for byte in message])
+
+    # DEBUG
+    print("decompressed_message:", decompressed_message)
 
     if 'padded' in decoder_ring:
         # Need to remove the padding from the last byte
         padded = decoder_ring['padded']
         padded_byte = decompressed_message[-8:]
-        decompressed_message = decompressed_message[:-8] + padded_byte[:-padded]
+        decompressed_message = decompressed_message[:-
+                                                    8] + padded_byte[:-padded]
 
     # for byte in message:
         # decompressed_message += bin(byte)[2:].zfill(8)
