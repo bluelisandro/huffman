@@ -67,8 +67,8 @@ def create_decoder_ring(huffman_tree) -> Dict:
         if len(node) == 2:
             decoder_ring[node[1]] = code
         else:
-            _create_decoder_ring(node[1], code + '0')
-            _create_decoder_ring(node[2], code + '1')
+            _create_decoder_ring(node[1], code + '0') # if traversing left add 0
+            _create_decoder_ring(node[2], code + '1') # if traversing right add 1
 
     _create_decoder_ring(huffman_tree, '')
 
@@ -85,9 +85,7 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     freq_min_heap = create_freq_min_heap(freq_tree)
     huffman_tree = create_huffman_tree(freq_min_heap)
     decoder_ring = create_decoder_ring(huffman_tree)
-
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
-
     return (encoded_message, decoder_ring)
 
 
@@ -111,13 +109,18 @@ def compress(message: bytes) -> Tuple[array, Dict]:
             byte = 0
 
     # If there is a partial byte left, pad the left with 0s,
-    # then add it to the compressed message
+    # add the amount padded as a key to the decoder ring,
+    # then add the padded bit to the compressed message
     if byte != 0:
         padded_byte = bin(byte)[2:].zfill(8)
         compressed_message.append(padded_byte)
+        decoder_ring['padded'] = 8 - len(bin(byte)[2:])
+        print("padded:", padded_byte)
 
     # DEBUG
-    print(compressed_message)
+    # print("compressed_message:" , compressed_message)
+    # print("compressed_message:", ' '.join([format(b, '02x') for b in compressed_message]))
+
 
     return (compressed_message, decoder_ring)
 
@@ -141,6 +144,10 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
             decoded_message.append(flipped_decoder[buf])
             buf = ''
 
+    # DEBUG
+    # print("decoded_message:", decoded_message)
+
+    # TODO: This should be returning bytes, not an array of bytes
     return decoded_message
 
 
@@ -152,22 +159,20 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     :return: raw sequence of bytes that represent a decompressed file
     """
     decompressed_message = ''
-    # buf = 0
-    # for bit in message:
-    #     if bit == '0':
-    #         buf = buf << 1
-    #     else:
-    #         buf = (buf << 1) | 1
-    #     decompressed_message += str(buf)
 
-    # decompressed_message = ''.join([bin(b)[2:].zfill(8) for b in message])
+    # Convert the array of bytes into a string of 1s and 0s
+    decompressed_message += ''.join([bin(byte)[2:].zfill(8) for byte in message])
 
-    for byte in message:
-        decompressed_message += bin(byte)[2:].zfill(8)
+    if 'padded' in decoder_ring:
+        # Need to remove the padding from the last byte
+        padded = decoder_ring['padded']
+        padded_byte = decompressed_message[-8:]
+        decompressed_message = decompressed_message[:-8] + padded_byte[:-padded]
 
     # for byte in message:
-    #     temp = bin(byte)[2:]
-    #     decompressed_message += '0' * (8 - len(temp)) + temp
+        # decompressed_message += bin(byte)[2:].zfill(8)
+    # List comprehension version of above
+    # decompressed_message = ''.join([bin(b)[2:].zfill(8) for b in message])
 
     return decode(decompressed_message, decoder_ring)
 
