@@ -74,6 +74,11 @@ def create_decoder_ring(huffman_tree) -> Dict:
 
     _create_decoder_ring(huffman_tree, '')
 
+    # DEBUG
+    # print("decoder_ring:")
+    # for k, v in decoder_ring.items():
+    #     print(chr(k), v)
+
     return decoder_ring
 
 
@@ -89,6 +94,9 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     decoder_ring = create_decoder_ring(huffman_tree)
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
 
+    # DEBUG
+    # print("\nencoded_message:", encoded_message, "\n")
+
     return (encoded_message, decoder_ring)
 
 
@@ -100,33 +108,59 @@ def compress(message: bytes) -> Tuple[array, Dict]:
               dict containing the decoder ring
     """
     encoded_message, decoder_ring = encode(message)
+
     compressed_message = array('B')
     byte = ""
+    # DEBUG
+    # print("bytes appended to compressed_message:")
     for bit in encoded_message:
         # Shift byte left by 1, and add curr bit to end
         byte += bit
 
         # If byte is full, add it to compressed message, and clear byte
         if len(byte) == 8:
+            # DEBUG
+            # print(byte)
             compressed_message.append(int(byte, 2))
             byte = ""
 
     # If there is a partial byte left, pad the right with 0s,
     # add the amount padded as a key to the decoder ring,
     # then add the padded bit to the compressed message
+
+    # DEBUG
+    # print("\ncompressed_message bytes w/o padding:", end=" ")
+    # for byte in compressed_message:
+    #     print(bin(byte)[2:], end="")
+    # print("\nleftover byte to pad:", bin(byte)[2:])
+
     if len(byte) != 0:
         padded_byte = byte
+        # DEBUG
+        # print("padded_byte before padding:", padded_byte)
         pad_count = 0
         while len(padded_byte) < 8:
             padded_byte += '0'
             pad_count += 1
 
+        # DEBUG
+        # print("\npad_count:", pad_count)
+        # print("padded_byte after padding:", padded_byte)
+        # print("appending byte to compressed_message:", padded_byte)
+
         compressed_message.append(int(padded_byte, 2))
         decoder_ring['pad_count'] = pad_count
+
+    # DEBUG
+    # print("\ncompressed_message bytes w/ padding:")
+    for byte in compressed_message:
+        print(bin(byte)[2:])
 
     return (compressed_message, decoder_ring)
 
 # ------------------------- DECODING -------------------------
+
+
 def decode(message: str, decoder_ring: Dict) -> bytes:
     """ Given the encoded string and the decoder ring, decodes the message using the Huffman decoding algorithm.
 
@@ -145,6 +179,11 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
             decoded_message.append(flipped_decoder[buf])
             buf = ''
 
+    # DEBUG
+    # print("\ndecoded_message:", end=" ")
+    for byte in decoded_message:
+        print(chr(byte), end="")
+
     return bytes(decoded_message)
 
 
@@ -160,19 +199,37 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     byte_index = 0
     for byte in message:
         decompressed_message += bin(byte)[2:].zfill(8)
+        # TODO: Don't append last byte if it is padded
+        # DONE: Added if statement to check if byte_index is the last byte
         if 'pad_count' in decoder_ring and byte_index == len(message) - 2:
             break
         byte_index += 1
 
+    # DEBUG
+    # if 'pad_count' in decoder_ring:
+    #     print("\ndecompressed_message bytes w/o padded byte:", decompressed_message)
+
     if 'pad_count' in decoder_ring:
+        # DEBUG
+        # print("\npad_count:", decoder_ring['pad_count'])
+
         # Need to remove the padding from the last byte
         pad_count = decoder_ring['pad_count']
         padded_byte = bin(message[len(message) - 1])[2:]
 
+        # DEBUG
+        # print("padded_byte:", padded_byte)
+
         # Add back 0s if pad_count + the unpadded byte length is less than 8
         unpadded_byte = padded_byte[:-pad_count].zfill(8 - pad_count)
 
+        # DEBUG
+        # print("unpadded_byte:", unpadded_byte)
+
         decompressed_message += unpadded_byte
+
+    # DEBUG
+    # print("\ndecompressed_message bytes unpadded:", decompressed_message)
 
     return decode(decompressed_message, decoder_ring)
 
