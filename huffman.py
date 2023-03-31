@@ -106,13 +106,12 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     # add the amount padded as a key to the decoder ring,
     # then add the padded bit to the compressed message
     if len(byte) != 0:
-        padded_byte = byte
         pad_count = 0
-        while len(padded_byte) < 8:
-            padded_byte += '0'
+        while len(byte) < 8:
+            byte += '0'
             pad_count += 1
 
-        compressed_message.append(int(padded_byte, 2))
+        compressed_message.append(int(byte, 2))
         decoder_ring['pad_count'] = pad_count
 
     return (compressed_message, decoder_ring)
