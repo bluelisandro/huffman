@@ -7,7 +7,6 @@ from typing import Dict
 from typing import Tuple
 import heapq
 from collections import defaultdict
-import random
 
 # ------------------------- ENCODING -------------------------
 
@@ -18,7 +17,10 @@ def get_byte_freqs(message: bytes) -> Dict:
     :param message: raw sequence of bytes from a file
     :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
     """
-    return {byte: message.count(byte) for byte in set(message)} # key: byte, value: frequency
+    byte_freqs = defaultdict(int)
+    for byte in message:
+        byte_freqs[byte] += 1
+    return byte_freqs # key: byte, value: frequency
 
 
 def create_huffman_tree(byte_freqs: dict):
@@ -48,7 +50,6 @@ def create_huffman_tree(byte_freqs: dict):
     heapq.heapify(priority_min_heap)
     # print("after priorites:", priority_min_heap)
 
-    priority = 0
     # Repeat until there is only one node left in the minheap
     while len(priority_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
@@ -57,14 +58,6 @@ def create_huffman_tree(byte_freqs: dict):
         left = heapq.heappop(priority_min_heap)
         right = heapq.heappop(priority_min_heap)
 
-        # Create a new node with the sum of the two frequencies as the frequency,
-        # and add the two smallest frequencies as children to the new node,
-        # (freq sum, left child, right child)
-        # TODO: Need to also add a priority to the new node, but what should it be?
-        # What causes the bad comparison error for tuple to int is there are two different nodes with the same frequency sum,
-        # to the heapq tries to compare the next element in the tuple, which is a tuple
-
-        # NOTE: What if I just make it so the higher the frequency, the higher the priority?
         priority = left[1] - right[1]
         new = (left[0] + right[0], priority, left, right)
 
@@ -172,7 +165,7 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
 
     decoded_message = array('B')
     buf = ''
-    flipped_decoder = {v: k for k, v in decoder_ring.items()}
+    flipped_decoder = {code: byte for byte, code in decoder_ring.items()}
 
     for bit in message:
         buf += bit
