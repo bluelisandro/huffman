@@ -32,6 +32,9 @@ def create_huffman_tree(freq_map: dict):
     # heapq.heapify(freq_min_heap)
     freq_min_heap.sort(key=lambda t: t[0])
 
+    # Leaf node: (freq, byte)
+    # Internal node: (freq, left child, right child)
+
     # Repeat until there is only one node left in the minheap
     while len(freq_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
@@ -61,7 +64,9 @@ def create_decoder_ring(huffman_tree) -> Dict:
               dict containing the decoder ring as explained in lecture and handout.
     """
     decoder_ring = {}  # key: byte, value: code
-
+    
+    # Leaf node: (freq, byte)
+    # Internal node: (freq, left child, right child)
     def _create_decoder_ring(node: Tuple[int, any, any], code: str):
         # If a node has only one child, its left child is a leaf node
         # so we can add that code to the dictionary
