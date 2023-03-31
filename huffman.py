@@ -10,13 +10,18 @@ from collections import defaultdict, deque
 
 # ------------------------- ENCODING -------------------------
 
-def create_huffman_tree(message: bytes) -> Dict:
+
+def get_byte_freqs(message: bytes) -> Dict:
+    """ Given the bytes read from a file, returns a dictionary containing the frequency and priority of each byte in the file.
+    :param message: raw sequence of bytes from a file
+    :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
+    """
     # Use a dict to store the frequency of each byte and its priority
     # key: byte, value: (frequency, priority)
     byte_freqs = defaultdict(lambda: (0, 0))
     priority = 0
-    
-    for byte in message: # O(n)
+
+    for byte in message:  # O(n)
         # Assign each byte a priority on a first come first serve basis
         # The more frequent a byte is and the sooner it is read, the higher its priority.
         # Increment the frequency of the byte and decrement its priority
@@ -24,13 +29,21 @@ def create_huffman_tree(message: bytes) -> Dict:
                             byte_freqs[byte][1] - priority)
         priority += 1
 
+    return byte_freqs
+
+
+def create_huffman_tree(byte_freqs: Dict) -> Tuple:
+    """ Given a dict containing the frequency tree for each byte, returns a huffman tree.
+    :param minheap: minheap containing the frequency tree for each byte
+    :returns: huffman tree
+    """
     # Create minheap of tuples of (freq, priority, byte)
     freq_min_heap = []
-    for byte, (freq, priority) in byte_freqs.items(): # O(nlog(n))
+    for byte, (freq, priority) in byte_freqs.items():  # O(nlog(n))
         heapq.heappush(freq_min_heap, (freq, priority, byte))
 
     # Repeat until there is only one node left in the minheap
-    while len(freq_min_heap) > 1: # O(nlog(n))
+    while len(freq_min_heap) > 1:  # O(nlog(n))
         # Pop the two smallest frequencies from the minheap
         left = heapq.heappop(freq_min_heap)
         right = heapq.heappop(freq_min_heap)
@@ -76,7 +89,8 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     :returns: string of 1s and 0s representing the encoded message
               dict containing the decoder ring as explained in lecture and handout.
     """
-    huffman_tree = create_huffman_tree(message)
+    byte_freqs = get_byte_freqs(message)
+    huffman_tree = create_huffman_tree(byte_freqs)
     decoder_ring = create_decoder_ring(huffman_tree)
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
 
