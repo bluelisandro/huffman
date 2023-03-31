@@ -20,7 +20,6 @@ def get_byte_freqs(message: bytes) -> Dict:
     # key: byte, value: (frequency, priority)
     byte_freqs = defaultdict(lambda: (0, 0))
     priority = 0
-
     for byte in message:  # O(n)
         # Assign each byte a priority on a first come first serve basis
         # The more frequent a byte is and the sooner it is read, the higher its priority.
@@ -47,10 +46,8 @@ def create_huffman_tree(byte_freqs: Dict) -> Tuple:
         # Pop the two smallest frequencies from the minheap
         left = heapq.heappop(freq_min_heap)
         right = heapq.heappop(freq_min_heap)
-
         # Create a new node as (sum of freqs, sum of priorities, left child, right child)
         new = (left[0] + right[0], left[1] + right[1], left, right)
-
         # Add the new node to the minheap
         heapq.heappush(freq_min_heap, new)
 
@@ -110,7 +107,6 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     for bit in encoded_message:
         # Shift byte left by 1, and add curr bit to end
         byte += bit
-
         # If byte is full, add it to compressed message, and clear byte
         if len(byte) == 8:
             compressed_message.append(int(byte, 2))
@@ -124,7 +120,6 @@ def compress(message: bytes) -> Tuple[array, Dict]:
         while len(byte) < 8:
             byte += '0'
             pad_count += 1
-
         compressed_message.append(int(byte, 2))
         decoder_ring['pad_count'] = pad_count
 
@@ -161,23 +156,22 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     :param decoder_ring: dict containing the decoder ring
     :return: raw sequence of bytes that represent a decompressed file
     """
-    decompressed_message = ""
+    # Check if pad count exists in the decoder ring, else set to False
+    pad_count = decoder_ring.pop('pad_count', False)
 
+    decompressed_message = ""
     byte_index = 0
     for byte in message:
         decompressed_message += bin(byte)[2:].zfill(8)
-        if 'pad_count' in decoder_ring and byte_index == len(message) - 2:
+        if pad_count and byte_index == len(message) - 2:
             break
         byte_index += 1
 
-    if 'pad_count' in decoder_ring:
+    if pad_count:
         # Need to remove the padding from the last byte
-        pad_count = decoder_ring.pop('pad_count')
         padded_byte = bin(message[len(message) - 1])[2:]
-
         # Add back 0s if pad_count + the unpadded byte length is less than 8
         unpadded_byte = padded_byte[:-pad_count].zfill(8 - pad_count)
-
         decompressed_message += unpadded_byte
 
     return decode(decompressed_message, decoder_ring)
