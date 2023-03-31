@@ -31,22 +31,16 @@ def create_huffman_tree(byte_freqs: dict):
     """
     # Ensure all elements in the minheap are tuples with the frequency as the first element
     freq_min_heap = [(freq, byte)
-                     for byte, freq in byte_freqs.items()]
-
-    # Build the min heap
-    heapq.heapify(freq_min_heap)
+                 for byte, freq in byte_freqs.items()]
 
     # Give each node a priority, the higher the frequency, the higher the priority
-    # print("before priorites:", freq_min_heap)
+    # TODO: This solution is more optimal than having to heapify twice like before
+    # just needs debugging because to omit the extra heapfiy it turns the freq negative
     priority_min_heap = []
-    priority = len(freq_min_heap)
-    while freq_min_heap:
-        node = heapq.heappop(freq_min_heap)
-        # print("node:", node)
-        priority_min_heap.append((node[0], priority, node[1]))
-        priority -= 1
-    
+    priority_min_heap = [(-freq, len(priority_min_heap), byte)
+                     for byte, freq in freq_min_heap]
 
+    # Build the min heap
     heapq.heapify(priority_min_heap)
     # print("after priorites:", priority_min_heap)
 
@@ -58,8 +52,8 @@ def create_huffman_tree(byte_freqs: dict):
         left = heapq.heappop(priority_min_heap)
         right = heapq.heappop(priority_min_heap)
 
-        priority = left[1] - right[1]
-        new = (left[0] + right[0], priority, left, right)
+        priority = left[1] + right[1]
+        new = (left[0] - right[0], priority, left, right)
 
         # Add the new node to the minheap
         heapq.heappush(priority_min_heap, new)
