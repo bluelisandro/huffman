@@ -54,7 +54,7 @@ def create_huffman_tree(byte_freqs: Dict) -> Tuple:
     return freq_min_heap[0]
 
 
-def create_decoder_ring(huffman_tree) -> Dict:
+def create_decoder_ring(huffman_tree: Tuple) -> Dict:
     """ Given a huffman tree, returns an encoder ring.
 
     :param message: raw sequence of bytes from a file
@@ -66,6 +66,7 @@ def create_decoder_ring(huffman_tree) -> Dict:
     # Parent nodes: (freq, priority, left child, right child)
     # Each element in the stack is a tuple (node, code)
     stack = deque([(huffman_tree, '')])
+    # Build huffman tree iteratively using a stack
     while stack:
         current_node, code = stack.pop()
         if isinstance(current_node[2], int):
@@ -168,7 +169,7 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
         byte_index += 1
 
     if pad_count:
-        # Need to remove the padding from the last byte
+        # Remove all trailing 0s from last byte
         padded_byte = bin(message[len(message) - 1])[2:]
         # Add back 0s if pad_count + the unpadded byte length is less than 8
         unpadded_byte = padded_byte[:-pad_count].zfill(8 - pad_count)
