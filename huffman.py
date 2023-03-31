@@ -6,28 +6,53 @@ from array import array
 from typing import Dict
 from typing import Tuple
 import heapq
+from collections import defaultdict
 
 # ------------------------- ENCODING -------------------------
 
 
-def create_freq_map(message: bytes) -> Dict:
+def get_byte_freqs(message: bytes) -> Dict:
     """ Given the bytes read from a file, returns a dictionary containing the frequency of each byte in the file.
 
     :param message: raw sequence of bytes from a file
     :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
     """
-    return {byte: message.count(byte) for byte in set(message)} # key: byte, value: frequency
+    byte_freqs = defaultdict(
+        lambda: (0, 0))  # key: byte, value: (freq, priority)
+
+    # key: frequency, value: list of bytes with that frequency
+    freq_list = defaultdict(list)
+
+    for byte in message:
+        # Increment the frequency of the byte
+        old_freq = byte_freqs[byte][0]
+        byte_freqs[byte] = (old_freq + 1, 0)
+
+        # Add byte to the list of bytes with that frequency
+        new_freq = byte_freqs[byte][0]
+        freq_list[new_freq].append(byte)
+
+        # Set its priority as its index in freq_list
+        byte_freqs[byte] = (new_freq, freq_list[new_freq].index(byte))
+
+        # Remove the byte from its previous frequency list
+        if old_freq != 0:
+            freq_list[new_freq - 1].remove(byte)
+
+    # print(byte_freqs)
+    return byte_freqs  # key: byte, value: (freq, priority)
 
 
-def create_huffman_tree(freq_map: dict):
+def create_huffman_tree(byte_freqs: dict):
     """ Given a minheap containing the frequency tree for each byte, returns a huffman tree.
 
     :param minheap: minheap containing the frequency tree for each byte
     :returns: huffman tree
     """
     # Ensure all elements in the minheap are tuples with the frequency as the first element
-    freq_min_heap = [(freq, byte) for byte, freq in freq_map.items()]
-    
+    freq_min_heap = [(freq, priority, byte)
+                     for byte, (freq, priority) in byte_freqs.items()]
+
     # Build the min heap
     heapq.heapify(freq_min_heap)
 
@@ -40,8 +65,10 @@ def create_huffman_tree(freq_map: dict):
 
         # Create a new node with the sum of the two frequencies as the frequency,
         # and add the two smallest frequencies as children to the new node,
-        new = (left[0] + right[0], left, right) # (freq sum, left child, right child)
- 
+        # (freq sum, left child, right child)
+        # TODO: Need to also add a priority to the new node, but what should it be?
+        new = (left[0] + right[0], left, right)
+
         # Add the new node to the minheap
         heapq.heappush(freq_min_heap, new)
 
@@ -57,18 +84,30 @@ def create_decoder_ring(huffman_tree) -> Dict:
     """
     decoder_ring = {}  # key: byte, value: code
 
-    def _create_decoder_ring(node: Tuple[int, any, any], code: str):
-        # If a node has only one child, its left child is a leaf node
-        # so we can add that code to the dictionary
-        if len(node) == 2:
-            decoder_ring[node[1]] = code
+    # print(huffman_tree)
+
+    # Leaf nodes: (freq, prority, byte)
+    # Parent nodes: (freq, left child, right child)
+
+    def _create_decoder_ring(node, code: str):
+        # print("node:", node)
+
+        # If the node is a parent node, recursively call the function on its children
+        # and add 0 to code for the left child and 1 for the right child
+        if isinstance(node[1], int):
+            # print("Leaf!")
+            # print("Adding code:", node[2], ":", code, "\n")
+            decoder_ring[node[2]] = code
         else:
-            # if traversing left add 0
+            # print("Parent!")
+            # print("left child:", node[1])
+            # print("right child:", node[2], "\n")
             _create_decoder_ring(node[1], code + '0')
-            # if traversing right add 1
             _create_decoder_ring(node[2], code + '1')
 
     _create_decoder_ring(huffman_tree, '')
+
+    # print("decoder_ring:", decoder_ring)
 
     return decoder_ring
 
@@ -79,8 +118,8 @@ def encode(message: bytes) -> Tuple[str, Dict]:
     :returns: string of 1s and 0s representing the encoded message
               dict containing the decoder ring as explained in lecture and handout.
     """
-    freq_map = create_freq_map(message)
-    huffman_tree = create_huffman_tree(freq_map)
+    byte_freqs = get_byte_freqs(message)
+    huffman_tree = create_huffman_tree(byte_freqs)
     decoder_ring = create_decoder_ring(huffman_tree)
     encoded_message = ''.join([decoder_ring[byte] for byte in message])
 
@@ -122,6 +161,8 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     return (compressed_message, decoder_ring)
 
 # ------------------------- DECODING -------------------------
+
+
 def decode(message: str, decoder_ring: Dict) -> bytes:
     """ Given the encoded string and the decoder ring, decodes the message using the Huffman decoding algorithm.
 
