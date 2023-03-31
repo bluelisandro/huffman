@@ -18,30 +18,7 @@ def get_byte_freqs(message: bytes) -> Dict:
     :param message: raw sequence of bytes from a file
     :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
     """
-    byte_freqs = defaultdict(
-        lambda: (0, 0))  # key: byte, value: (freq, priority)
-
-    # key: frequency, value: list of bytes with that frequency
-    freq_list = defaultdict(list)
-
-    for byte in message:
-        # Increment the frequency of the byte
-        old_freq = byte_freqs[byte][0]
-        byte_freqs[byte] = (old_freq + 1, 0)
-
-        # Add byte to the list of bytes with that frequency
-        new_freq = byte_freqs[byte][0]
-        freq_list[new_freq].append(byte)
-
-        # Set its priority as its index in freq_list
-        byte_freqs[byte] = (new_freq, freq_list[new_freq].index(byte))
-
-        # Remove the byte from its previous frequency list
-        if old_freq != 0:
-            freq_list[new_freq - 1].remove(byte)
-
-    # print(byte_freqs)
-    return byte_freqs  # key: byte, value: (freq, priority)
+    return {byte: message.count(byte) for byte in set(message)} # key: byte, value: frequency
 
 
 def create_huffman_tree(byte_freqs: dict):
@@ -51,21 +28,33 @@ def create_huffman_tree(byte_freqs: dict):
     :returns: huffman tree
     """
     # Ensure all elements in the minheap are tuples with the frequency as the first element
-    freq_min_heap = [(freq, priority, byte)
-                     for byte, (freq, priority) in byte_freqs.items()]
+    freq_min_heap = [(freq, byte)
+                     for byte, freq in byte_freqs.items()]
 
     # Build the min heap
     heapq.heapify(freq_min_heap)
 
-    seen_sums = defaultdict(int) # key: sum of two frequencies, value: count of nodes with that sum
+    # Give each node a priority, the higher the frequency, the higher the priority
+    # print("before priorites:", freq_min_heap)
+    priority_min_heap = []
+    priority = len(freq_min_heap)
+    while freq_min_heap:
+        node = heapq.heappop(freq_min_heap)
+        # print("node:", node)
+        priority_min_heap.append((node[0], priority, node[1]))
+        priority -= 1
+    
+
+    heapq.heapify(priority_min_heap)
+    # print("after priorites:", priority_min_heap)
 
     # Repeat until there is only one node left in the minheap
-    while len(freq_min_heap) > 1:
+    while len(priority_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
-        print("left:", freq_min_heap[0])
-        print("right:", freq_min_heap[1])
-        left = heapq.heappop(freq_min_heap)
-        right = heapq.heappop(freq_min_heap)
+        # print("left:", freq_min_heap[0])
+        # print("right:", freq_min_heap[1])
+        left = heapq.heappop(priority_min_heap)
+        right = heapq.heappop(priority_min_heap)
 
         # Create a new node with the sum of the two frequencies as the frequency,
         # and add the two smallest frequencies as children to the new node,
@@ -73,18 +62,15 @@ def create_huffman_tree(byte_freqs: dict):
         # TODO: Need to also add a priority to the new node, but what should it be?
         # What causes the bad comparison error for tuple to int is there are two different nodes with the same frequency sum,
         # to the heapq tries to compare the next element in the tuple, which is a tuple
-        # priority = 0
-        # if left[0] + right[0] in seen_sums:
-        # seen_sums[left[0] + right[0]] += 1
-        # make priority random numebr
-        priority = random.randint(0, 1000000000)
 
-        new = (left[0] + right[0], priority, left, right)
+        # NOTE: What if I just make it so the higher the frequency, the higher the priority?
+
+        new = (left[0] + right[0], left, right)
 
         # Add the new node to the minheap
-        heapq.heappush(freq_min_heap, new)
+        heapq.heappush(priority_min_heap, new)
 
-    return freq_min_heap[0]
+    return priority_min_heap[0]
 
 
 def create_decoder_ring(huffman_tree) -> Dict:
