@@ -127,15 +127,23 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
     :param decoder_ring: dict containing the decoder ring
     return: raw sequence of bytes that represent a decoded file
     """
-    decoded_message = array('B')
-    buf = ''
-    flipped_decoder = {code: byte for byte, code in decoder_ring.items()}
 
-    for bit in message:
-        buf += bit
-        if buf in flipped_decoder:
-            decoded_message.append(flipped_decoder[buf])
-            buf = ''
+    decoded_message = array('B')
+    buf = 0
+    table = [None] * 256
+
+    for byte, code in decoder_ring.items():
+        table[byte] = int(code) % 256
+
+    # Convert message string to sequence of integers
+    message_ints = [int(bit) for bit in message]
+
+    for bit in message_ints:
+        buf = (buf << 1) | bit  # Shift the bits to the left and add the new bit
+        if table[buf] is not None:
+            decoded_message.append(table[buf])
+            buf = 0
+
 
     return bytes(decoded_message)
 
@@ -158,7 +166,8 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
 
     if 'pad_count' in decoder_ring:
         # Need to remove the padding from the last byte
-        pad_count = decoder_ring.pop('pad_count')
+        pad_count = decoder_ring['pad_count']
+        del decoder_ring['pad_count']
         padded_byte = bin(message[len(message) - 1])[2:]
 
         # Add back 0s if pad_count + the unpadded byte length is less than 8
