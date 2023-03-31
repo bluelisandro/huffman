@@ -7,6 +7,7 @@ from typing import Dict
 from typing import Tuple
 import heapq
 from collections import defaultdict
+import random
 
 # ------------------------- ENCODING -------------------------
 
@@ -56,18 +57,29 @@ def create_huffman_tree(byte_freqs: dict):
     # Build the min heap
     heapq.heapify(freq_min_heap)
 
+    seen_sums = defaultdict(int) # key: sum of two frequencies, value: count of nodes with that sum
+
     # Repeat until there is only one node left in the minheap
     while len(freq_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
+        print("left:", freq_min_heap[0])
+        print("right:", freq_min_heap[1])
         left = heapq.heappop(freq_min_heap)
-
         right = heapq.heappop(freq_min_heap)
 
         # Create a new node with the sum of the two frequencies as the frequency,
         # and add the two smallest frequencies as children to the new node,
         # (freq sum, left child, right child)
         # TODO: Need to also add a priority to the new node, but what should it be?
-        new = (left[0] + right[0], left, right)
+        # What causes the bad comparison error for tuple to int is there are two different nodes with the same frequency sum,
+        # to the heapq tries to compare the next element in the tuple, which is a tuple
+        # priority = 0
+        # if left[0] + right[0] in seen_sums:
+        # seen_sums[left[0] + right[0]] += 1
+        # make priority random numebr
+        priority = random.randint(0, 1000000000)
+
+        new = (left[0] + right[0], priority, left, right)
 
         # Add the new node to the minheap
         heapq.heappush(freq_min_heap, new)
