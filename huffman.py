@@ -143,10 +143,11 @@ def decode(message: str, decoder_ring: Dict) -> bytes:
     decoded_message = array('B')
     buf = ''
     flipped_decoder = {code: byte for byte, code in decoder_ring.items()}
-
+    # Precompute the set of keys in the flipped_decoder for faster membership checking
+    flipped_decoder_keys = set(flipped_decoder.keys())
     for bit in message:
         buf += bit
-        if buf in flipped_decoder:
+        if buf in flipped_decoder_keys:
             decoded_message.append(flipped_decoder[buf])
             buf = ''
 
