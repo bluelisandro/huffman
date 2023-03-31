@@ -10,55 +10,42 @@ from collections import defaultdict
 
 # ------------------------- ENCODING -------------------------
 
+def create_huffman_tree(message: bytes) -> Dict:
+    # Use a dict to store the frequency of each byte
+    # Use a priority queue to store the bytes on a first come first serve basis, where index = priority
 
-def get_byte_freqs(message: bytes) -> Dict:
-    """ Given the bytes read from a file, returns a dictionary containing the frequency of each byte in the file.
-
-    :param message: raw sequence of bytes from a file
-    :returns: dict containing the frequency of each byte in the file, key: byte, value: frequency
-    """
-    byte_freqs = defaultdict(int)
+    byte_freqs = defaultdict(lambda: (0, 0)) # key: byte, value: (frequency, priority, index)
+    freq_min_heap = []
+    priority = 0
     for byte in message:
-        byte_freqs[byte] += 1
-    return byte_freqs # key: byte, value: frequency
+        # Assign each byte a priority on a first come first serve basis
+        # The more frequent a byte is, the higher its priority in the minheap
 
+        # Increment the frequency of the byte and decrement its priority
+        byte_freqs[byte] = (byte_freqs[byte][0] + 1, byte_freqs[byte][1] - priority)
+        priority += 1
 
-def create_huffman_tree(byte_freqs: dict):
-    """ Given a minheap containing the frequency tree for each byte, returns a huffman tree.
+        # If a byte's priority is 0, it is not in the minheap, so add it
+        # Remove the byte at its previous position in the minheap, then add it back with its new priority
 
-    :param minheap: minheap containing the frequency tree for each byte
-    :returns: huffman tree
-    """
-    # Ensure all elements in the minheap are tuples with the frequency as the first element
-    freq_min_heap = [(freq, byte)
-                 for byte, freq in byte_freqs.items()]
-
-    # Give each node a priority, the higher the frequency, the higher the priority
-    # TODO: This solution is more optimal than having to heapify twice like before
-    # just needs debugging because to omit the extra heapfiy it turns the freq negative
-    priority_min_heap = []
-    priority_min_heap = [(-freq, len(priority_min_heap), byte)
-                     for byte, freq in freq_min_heap]
-
-    # Build the min heap
-    heapq.heapify(priority_min_heap)
+        
     # print("after priorites:", priority_min_heap)
 
     # Repeat until there is only one node left in the minheap
-    while len(priority_min_heap) > 1:
+    while len(freq_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
         # print("left:", freq_min_heap[0])
         # print("right:", freq_min_heap[1])
-        left = heapq.heappop(priority_min_heap)
-        right = heapq.heappop(priority_min_heap)
+        left = heapq.heappop(freq_min_heap)
+        right = heapq.heappop(freq_min_heap)
 
         priority = left[1] + right[1]
         new = (left[0] - right[0], priority, left, right)
 
         # Add the new node to the minheap
-        heapq.heappush(priority_min_heap, new)
+        heapq.heappush(freq_min_heap, new)
 
-    return priority_min_heap[0]
+    return freq_min_heap[0]
 
 
 def create_decoder_ring(huffman_tree) -> Dict:
