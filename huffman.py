@@ -48,6 +48,7 @@ def create_huffman_tree(byte_freqs: dict):
     heapq.heapify(priority_min_heap)
     # print("after priorites:", priority_min_heap)
 
+    priority = 0
     # Repeat until there is only one node left in the minheap
     while len(priority_min_heap) > 1:
         # Pop the two smallest frequencies from the minheap
@@ -64,8 +65,8 @@ def create_huffman_tree(byte_freqs: dict):
         # to the heapq tries to compare the next element in the tuple, which is a tuple
 
         # NOTE: What if I just make it so the higher the frequency, the higher the priority?
-
-        new = (left[0] + right[0], left, right)
+        priority = left[1] - right[1]
+        new = (left[0] + right[0], priority, left, right)
 
         # Add the new node to the minheap
         heapq.heappush(priority_min_heap, new)
@@ -85,14 +86,14 @@ def create_decoder_ring(huffman_tree) -> Dict:
     # print(huffman_tree)
 
     # Leaf nodes: (freq, prority, byte)
-    # Parent nodes: (freq, left child, right child)
+    # Parent nodes: (freq, priority, left child, right child)
 
     def _create_decoder_ring(node, code: str):
         # print("node:", node)
 
         # If the node is a parent node, recursively call the function on its children
         # and add 0 to code for the left child and 1 for the right child
-        if isinstance(node[1], int):
+        if isinstance(node[2], int):
             # print("Leaf!")
             # print("Adding code:", node[2], ":", code, "\n")
             decoder_ring[node[2]] = code
@@ -100,8 +101,8 @@ def create_decoder_ring(huffman_tree) -> Dict:
             # print("Parent!")
             # print("left child:", node[1])
             # print("right child:", node[2], "\n")
-            _create_decoder_ring(node[1], code + '0')
-            _create_decoder_ring(node[2], code + '1')
+            _create_decoder_ring(node[2], code + '0')
+            _create_decoder_ring(node[3], code + '1')
 
     _create_decoder_ring(huffman_tree, '')
 
