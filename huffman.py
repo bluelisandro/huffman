@@ -3,12 +3,30 @@ import os
 import pickle
 import sys
 from array import array
-from typing import Dict
-from typing import Tuple
+from typing import Dict, Tuple
 import heapq
 from collections import defaultdict, deque
 
-# ------------------------- ENCODING -------------------------
+''' INVARIANTS
+Encoding
+Initialization: A raw sequence of bytes from a file.
+Maintenance: During construction of the huffman tree, there are three invariants that must be maintained:
+1. The frequency of each byte must be maintained in order to decide its order in the minheap and correctly calculate the prefix code based on its frequency.
+2. Each prefix code is unique to a byte.
+3. The more a byte occurs in the file, the shorter its prefix code is to maximize compression.
+    - Traversing the minheap tree left adds a 0 to the prefix code, and traversing right adds a 1.
+Termination: Termination is reached when all bytes in the file have been encoded with a unique prefix code.
+
+Decoding
+Initialization: a raw sequence of already compressed bytes from a file, encoded and compressed using its matching encode and compression functions and 
+a decoder ring where key = byte, value = code.
+Maintenance: During decoding, the invariant that must be maintained is that the decoder ring must have a code for each byte in the message.
+Termination: Termination is reached when all bytes in the message have been decoded into their original bytes.
+'''
+
+
+# ------------------------- Encoding -------------------------
+
 def get_byte_freqs(message: bytes) -> Dict:
     """ Given the bytes read from a file, returns a dictionary containing the frequency and priority of each byte in the file.
     :param message: raw sequence of bytes from a file
@@ -98,7 +116,7 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     encoded_message, decoder_ring = encode(message)
     compressed_message = array('B')
     byte = ""
-    for bit in encoded_message:
+    for bit in encoded_message: # O(n)
         byte += bit
         # If byte is full, add it to compressed message, and clear byte
         if len(byte) == 8:
@@ -118,7 +136,9 @@ def compress(message: bytes) -> Tuple[array, Dict]:
 
     return (compressed_message, decoder_ring)
 
-# ------------------------- DECODING -------------------------
+
+# ------------------------- Decoding -------------------------
+
 def decode(message: str, decoder_ring: Dict) -> bytes:
     """ Given the encoded string and the decoder ring, decodes the message using the Huffman decoding algorithm.
 
@@ -152,10 +172,12 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     # Check if pad count exists in the decoder ring, else set to False
     pad_count = decoder_ring.pop('pad_count', False)
 
+    # Add each raw byte in message to string
     decompressed_message = ""
     byte_index = 0
     for byte in message: # O(n)
         decompressed_message += bin(byte)[2:].zfill(8)
+        # Save the last byte if there is a pad count
         if pad_count and byte_index == len(message) - 2:
             break
         byte_index += 1
@@ -170,7 +192,7 @@ def decompress(message: array, decoder_ring: Dict) -> bytes:
     return decode(decompressed_message, decoder_ring)
 
 
-# ------------------------- MAIN -------------------------
+# ------------------------- Main -------------------------
 # -v: encode, w: decode , -c  compress, -d: decompress
 if __name__ == '__main__':
     usage = f'Usage: {sys.argv[0]} [ -c | -d | -v | -w ] infile outfile'
