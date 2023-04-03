@@ -115,23 +115,25 @@ def compress(message: bytes) -> Tuple[array, Dict]:
     """
     encoded_message, decoder_ring = encode(message)
     compressed_message = array('B')
-    byte = ""
-    for bit in encoded_message: # O(n)
-        byte += bit
+    byte = 0
+    bit_count = 0
+    for bit in encoded_message:
+        # Shift byte left by 1, and add curr bit to end
+        byte = (byte << 1) | int(bit)
+        bit_count += 1
         # If byte is full, add it to compressed message, and clear byte
-        if len(byte) == 8:
-            compressed_message.append(int(byte, 2))
-            byte = ""
+        if bit_count == 8:
+            compressed_message.append(byte)
+            byte = 0
+            bit_count = 0
 
     # If there is a partial byte left, pad the right with 0s,
     # add the amount padded as a key to the decoder ring,
     # then add the padded bit to the compressed message
-    if len(byte) != 0:
-        pad_count = 0
-        while len(byte) < 8:
-            byte += '0'
-            pad_count += 1
-        compressed_message.append(int(byte, 2))
+    if bit_count > 0:
+        pad_count = 8 - bit_count
+        byte <<= pad_count
+        compressed_message.append(byte)
         decoder_ring['pad_count'] = pad_count
 
     return (compressed_message, decoder_ring)
