@@ -48,6 +48,7 @@ def create_huffman_tree(byte_freqs: Dict) -> Tuple:
     :param byte_freqs: dict of tuples containing the frequency and priority for each byte
     :returns: huffman tree
     """
+
     # Create minheap of tuples (freq, priority, byte)
     freq_min_heap = []
     for byte, (freq, priority) in byte_freqs.items():  # O(nlog(n))
@@ -73,6 +74,7 @@ def create_decoder_ring(huffman_tree: Tuple) -> Dict:
               dict containing the decoder ring as explained in lecture and handout.
     """
     decoder_ring = {}  # key: byte, value: code
+
     # Leaf nodes  : (freq, prority, byte)
     # Parent nodes: (freq, priority, left child, right child)
     # Each element in the stack is a tuple (node, code)
@@ -83,6 +85,7 @@ def create_decoder_ring(huffman_tree: Tuple) -> Dict:
         if isinstance(current_node[2], int):
             # If the node is a leaf node, add the byte and code to the decoder ring
             decoder_ring[current_node[2]] = code
+
         else:
             # If the node is a parent node, add its children to the stack
             # and add 0 to code for the left child and 1 for the right child
